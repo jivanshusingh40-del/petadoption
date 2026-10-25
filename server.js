@@ -1,31 +1,41 @@
+require("dotenv").config();
+
 const express = require("express");
 const mysql = require("mysql2");
-const bcrypt=require("bcrypt");
+const bcrypt = require("bcrypt");
 
-const db = mysql.createConnection({
-    host: "127.0.0.1",
-    user: "root",
-    password: "lpu@@2026",
-    database: "pet_adoption"
+// Database settings come from environment variables (.env on your laptop,
+// Environment Variables on Render). No password is stored in this file.
+const db = mysql.createPool({
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME || "pet_adoption",
+    ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined
 });
 
-db.connect((err) => {
+db.getConnection((err, connection) => {
     if (err) {
         console.log("MySQL connection failed:", err.message);
     } else {
         console.log("MySQL connected successfully!");
+        connection.release();
     }
 });
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
 app.use((req, res, next) => {
-  console.log(req.method, req.url, req.body);
-  next();
+    console.log(req.method, req.url, req.body);
+    next();
 });
+
 app.use(express.static(__dirname));
+
 app.post("/api/register", async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -80,22 +90,18 @@ app.post("/api/register", async (req, res) => {
 app.get("/api/pets", (req, res) => {
     db.query("SELECT * FROM pets", (err, results) => {
         if (err) {
-           if (err) {
-    console.log("ADOPTION ERROR:", err.message);
-    return res.status(500).json({
-        error: err.message
-    });
-} 
+            console.log("PETS ERROR:", err.message);
             return res.status(500).json({ error: err.message });
         }
 
         res.json(results);
     });
 });
+
 app.post("/api/adoptions", (req, res) => {
     const { adopter_name, email, pet_name } = req.body;
 
-    console.log("received data",req.body);
+    console.log("received data", req.body);
 
     const sql = "INSERT INTO adoptions (adopter_name, email, pet_name) VALUES (?, ?, ?)";
 
@@ -107,7 +113,9 @@ app.post("/api/adoptions", (req, res) => {
         res.json({ message: "Adoption application saved successfully!" });
     });
 });
-console.log('GET ADOPTIONS ROUTE LOADED')
+
+console.log("GET ADOPTIONS ROUTE LOADED");
+
 app.get("/api/adoptions", (req, res) => {
     db.query("SELECT * FROM adoptions", (err, results) => {
         if (err) {
@@ -116,6 +124,7 @@ app.get("/api/adoptions", (req, res) => {
         res.json(results);
     });
 });
+
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 });
