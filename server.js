@@ -1,25 +1,24 @@
-require("dotenv").config();
-
 const express = require("express");
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
+require("dotenv").config();
 
-// Database settings come from environment variables (.env on your laptop,
-// Environment Variables on Render). No password is stored in this file.
 const db = mysql.createPool({
     host: process.env.DB_HOST || "127.0.0.1",
-    port: process.env.DB_PORT || 3306,
+    port: Number(process.env.DB_PORT || 3306),
     user: process.env.DB_USER || "root",
-    password: process.env.DB_PASSWORD,
+    password: process.env.DB_PASSWORD || "",
     database: process.env.DB_NAME || "pet_adoption",
    ssl: process.env.DB_HOST
-    ? { rejectUnauthorized: true }
-    : undefined
+    ? { ca: require("fs").readFileSync("./ca.pem", "utf8") }
+    : undefined,
+    waitForConnections: true,
+    connectionLimit: 10
 });
 
 db.getConnection((err, connection) => {
     if (err) {
-        console.log("MySQL connection failed:", err.message);
+        console.error("MySQL connection failed:", err.message);
     } else {
         console.log("MySQL connected successfully!");
         connection.release();
@@ -28,16 +27,12 @@ db.getConnection((err, connection) => {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 app.use(express.json());
-
 app.use((req, res, next) => {
-    console.log(req.method, req.url, req.body);
-    next();
+  console.log(req.method, req.url, req.body);
+  next();
 });
-
 app.use(express.static(__dirname));
-
 app.post("/api/register", async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -92,18 +87,22 @@ app.post("/api/register", async (req, res) => {
 app.get("/api/pets", (req, res) => {
     db.query("SELECT * FROM pets", (err, results) => {
         if (err) {
-            console.log("PETS ERROR:", err.message);
+           if (err) {
+    console.log("ADOPTION ERROR:", err.message);
+    return res.status(500).json({
+        error: err.message
+    });
+} 
             return res.status(500).json({ error: err.message });
         }
 
         res.json(results);
     });
 });
-
 app.post("/api/adoptions", (req, res) => {
     const { adopter_name, email, pet_name } = req.body;
 
-    console.log("received data", req.body);
+    console.log("received data",req.body);
 
     const sql = "INSERT INTO adoptions (adopter_name, email, pet_name) VALUES (?, ?, ?)";
 
@@ -115,9 +114,7 @@ app.post("/api/adoptions", (req, res) => {
         res.json({ message: "Adoption application saved successfully!" });
     });
 });
-
-console.log("GET ADOPTIONS ROUTE LOADED");
-
+console.log('GET ADOPTIONS ROUTE LOADED')
 app.get("/api/adoptions", (req, res) => {
     db.query("SELECT * FROM adoptions", (err, results) => {
         if (err) {
@@ -126,8 +123,6 @@ app.get("/api/adoptions", (req, res) => {
         res.json(results);
     });
 });
-
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
 });
-
