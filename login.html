@@ -41,15 +41,36 @@
         <a href="register.html">Register here</a>
     </p>
 <script>
-document.getElementById("loginForm").addEventListener("submit", function(event) {
+document.getElementById("loginForm").addEventListener("submit", async function(event) {
     event.preventDefault();
 
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
+    const message = document.getElementById("loginMessage");
 
-    if (email && password) {
-        document.getElementById("loginMessage").textContent =
-            "Login form submitted. Authentication is not connected yet.";
+    try {
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            message.textContent = "Login successful!";
+            message.style.color = "green";
+            // Continue to the dashboard after successful login
+            window.location.href = "Dashboard.html";
+        } else {
+            message.textContent = data.error || "Login failed.";
+            message.style.color = "red";
+        }
+    } catch (error) {
+        message.textContent = "Unable to connect. Please try again.";
+        message.style.color = "red";
     }
 });
 </script>
