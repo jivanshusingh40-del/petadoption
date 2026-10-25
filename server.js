@@ -83,6 +83,62 @@ app.post("/api/register", async (req, res) => {
         });
     }
 });
+app.post("/api/login", (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({
+            error: "Please enter email and password."
+        });
+    }
+
+    const sql = `
+        SELECT id, name, email, password, role
+        FROM users
+        WHERE email = ?
+    `;
+
+    db.query(sql, [email.trim().toLowerCase()], async (err, results) => {
+        if (err) {
+            console.error("Login error:", err.message);
+            return res.status(500).json({
+                error: "Login failed. Please try again."
+            });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({
+                error: "Invalid email or password."
+            });
+        }
+
+        try {
+            const user = results[0];
+            const isMatch = await bcrypt.compare(password, user.password);
+
+            if (!isMatch) {
+                return res.status(401).json({
+                    error: "Invalid email or password."
+                });
+            }
+
+            return res.json({
+                message: "Login successful!",
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                }
+            });
+        } catch (error) {
+            console.error("Password comparison error:", error.message);
+            return res.status(500).json({
+                error: "Login failed. Please try again."
+            });
+        }
+    });
+});
 
 app.get("/api/pets", (req, res) => {
     db.query("SELECT * FROM pets", (err, results) => {
