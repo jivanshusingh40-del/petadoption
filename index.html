@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Adoption Platform</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <h1>Welcome to Pet Adoption Platform</h1>
+
+    <div class="auth-links">
+        <a href="login.html">Login</a>
+        <a href="register.html">Register</a>
+        <a href="Dashboard.html">Dashboard</a>
+    </div>
+
+    <p>Give a loving home to a pet</p>
+
+    <h2>Available Pets: Dogs and Cats</h2>
+
+    <!-- Search Pets -->
+    <div class="search-box">
+        <input
+            type="text"
+            id="searchPet"
+            placeholder="Search pets by name..."
+            oninput="searchPets()"
+        >
+        <button type="button" onclick="searchPets()">Search</button>
+    </div>
+
+    <!-- Filter Pets -->
+    <div class="filter-box">
+        <label for="petType">Filter by type:</label>
+
+        <select id="petType" onchange="filterPets()">
+            <option value="all">All Pets</option>
+            <option value="dog">Dog</option>
+            <option value="cat">Cat</option>
+        </select>
+    </div>
+
+    <!-- Bruno -->
+    <div class="pet-card">
+        <h3>Bruno</h3>
+        <img src="burno.jpg" alt="Bruno the dog" class="pet-image">
+        <p>Type: Dog</p>
+        <p>Age: 2 years</p>
+        <button type="button" onclick="adoptpet('Bruno')">
+            Adopt Bruno
+        </button>
+    </div>
+
+    <!-- Kitty -->
+    <div class="pet-card">
+        <h3>Kitty</h3>
+        <img src="kitty.jpg" alt="Kitty the cat" class="pet-image">
+        <p>Type: Cat</p>
+        <p>Age: 1 year</p>
+        <button type="button" onclick="adoptpet('Kitty')">
+            Adopt Kitty
+        </button>
+    </div>
+
+    <!-- About Us -->
+    <h2>About Us</h2>
+    <p>We help pets find loving homes.</p>
+
+    <!-- Contact Us -->
+    <h2>Contact Us</h2>
+    <p>Email: petadoption@gmail.com</p>
+    <p>M.No: +91-8757385102</p>
+
+    <!-- Adoption Form -->
+    <h2>Adoption Form</h2>
+
+    <form id="adoptionForm">
+
+        <label for="adopterName">Your Name:</label>
+        <input
+            type="text"
+            id="adopterName"
+            placeholder="Enter your name"
+            required
+        >
+
+        <br><br>
+
+        <label for="adopterEmail">Your Email:</label>
+        <input
+            type="email"
+            id="adopterEmail"
+            placeholder="Enter your email"
+            required
+        >
+
+        <br><br>
+
+        <label for="adoptionPet">Select pet:</label>
+
+        <select id="adoptionPet" required>
+            <option value="">Choose a pet</option>
+            <option value="Bruno">Bruno (Dog)</option>
+            <option value="Kitty">Kitty (Cat)</option>
+        </select>
+
+        <br><br>
+
+        <button type="submit">Submit Application</button>
+
+    </form>
+
+    <p id="success-message"></p>
+
+    <!-- Adoption Applications -->
+    <section id="applications">
+        <h2>Adoption Applications</h2>
+        <p>Thank you for helping pets find a loving home!</p>
+    </section>
+
+    <script>
+        // Adopt Pet Button
+        function adoptpet(petName) {
+            document.getElementById("adoptionPet").value = petName;
+
+            document.getElementById("adoptionForm").scrollIntoView({
+                behavior: "smooth"
+            });
+        }
+
+        // Search and Filter Pets Together
+        function updatePets() {
+            const searchValue = document
+                .getElementById("searchPet")
+                .value.toLowerCase()
+                .trim();
+
+            const selectedType =
+                document.getElementById("petType").value;
+
+            const petCards = document.querySelectorAll(".pet-card");
+
+            petCards.forEach(function (card) {
+                const petName = card
+                    .querySelector("h3")
+                    .textContent.toLowerCase();
+
+                const typeText = card
+                    .querySelector("p")
+                    .textContent.toLowerCase();
+
+                const petType = typeText
+                    .replace("type:", "")
+                    .trim();
+
+                const matchesName = petName.includes(searchValue);
+
+                const matchesType =
+                    selectedType === "all" ||
+                    petType === selectedType;
+
+                if (matchesName && matchesType) {
+                    card.style.display = "block";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+        }
+
+        function searchPets() {
+            updatePets();
+        }
+
+        function filterPets() {
+            updatePets();
+        }
+
+        // Submit Adoption Application
+        document
+            .getElementById("adoptionForm")
+            .addEventListener("submit", async function (event) {
+
+                event.preventDefault();
+
+                const form = event.target;
+
+                const adopter_name =
+                    document.getElementById("adopterName").value.trim();
+
+                const email =
+                    document.getElementById("adopterEmail").value.trim();
+
+                const pet_name =
+                    document.getElementById("adoptionPet").value;
+
+                const message =
+                    document.getElementById("success-message");
+
+                message.textContent = "Submitting your application...";
+
+                try {
+                    const response = await fetch("/api/adoptions", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            adopter_name: adopter_name,
+                            email: email,
+                            pet_name: pet_name
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        message.textContent =
+                            result.message ||
+                            "Your adoption application was submitted successfully!";
+
+                        form.reset();
+                    } else {
+                        message.textContent =
+                            result.error || "Could not submit your application.";
+                    }
+
+                } catch (error) {
+                    console.error(error);
+                    message.textContent =
+                        "Could not connect to the server. Please check that your backend is running.";
+                }
+            });
+    </script>
+
+</body>
+</html>

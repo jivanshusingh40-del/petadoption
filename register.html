@@ -1,0 +1,91 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Adoption - Register</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <h1>Pet Adoption Platform</h1>
+    <h2>User Registration</h2>
+
+    <form id="registerForm">
+
+        <label for="name">Full Name:</label>
+        <input type="text" id="name"
+               placeholder="Enter your full name" required>
+
+        <br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email"
+               placeholder="Enter your email" required>
+
+        <br><br> 
+
+
+        <label for="password">Password:</label>
+        <input type="password" id="password"
+               placeholder="Create a password"
+               minlength="8" required>
+
+        <br><br>
+
+<label for="role">Select Role:</label>
+
+<select id="role" name="role" required>
+    <option value="">Choose your role</option>
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+</select>
+
+<br><br>
+
+        <button type="submit">Register</button>
+
+    </form>
+
+    <p>Already have an account?
+        <a href="login.html">Login here</a>
+    </p>
+<script>
+document.getElementById("registerForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const name = document.getElementById("name").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+
+    try {
+        const response = await fetch("/api/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: name,
+                email: email,
+                password: password
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.message);
+            window.location.href = "login.html";
+        } else {
+            alert(result.error || "Registration failed.");
+        }
+    } catch (error) {
+        alert("Could not connect to the server. Please check that it is running.");
+    }
+});
+</script>
+</body>
+</html>
+
