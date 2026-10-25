@@ -12,7 +12,9 @@ const db = mysql.createPool({
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME || "pet_adoption",
-    ssl: process.env.DB_SSL === "true" ? { rejectUnauthorized: false } : undefined
+   ssl: process.env.DB_HOST
+    ? { rejectUnauthorized: true }
+    : undefined
 });
 
 db.getConnection((err, connection) => {
@@ -125,6 +127,7 @@ app.get("/api/adoptions", (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
 });
+
