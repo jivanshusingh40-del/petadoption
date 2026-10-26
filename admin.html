@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Adoption - Admin</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-login {
+            max-width: 420px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        .admin-login input {
+            width: 100%;
+            max-width: 300px;
+        }
+        .table-wrap {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 12px;
+            overflow-x: auto;
+        }
+        table.admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .admin-table th,
+        .admin-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #dde7e0;
+            font-size: 15px;
+        }
+        .admin-table th {
+            background: #2e7d32;
+            color: white;
+        }
+        .status-approved { color: #1b7f2a; font-weight: 600; }
+        .status-pending  { color: #b8860b; font-weight: 600; }
+        .status-rejected { color: #c0392b; font-weight: 600; }
+        .row-buttons button {
+            padding: 6px 12px;
+            margin: 2px;
+            font-size: 14px;
+        }
+        .btn-reject { background-color: #c0392b; }
+        .btn-pending { background-color: #b8860b; }
+        #adminMessage {
+            text-align: center;
+            font-weight: 600;
+            margin: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Pet Adoption Platform</h1>
+    <h2>Admin: Manage Applications</h2>
+
+    <div class="admin-login">
+        <input type="password" id="adminPassword" placeholder="Enter admin password">
+        <br>
+        <button type="button" id="loadButton">Load Applications</button>
+    </div>
+
+    <p id="adminMessage"></p>
+
+    <div class="table-wrap">
+        <table class="admin-table" id="adminTable" style="display:none;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Pet</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="adminBody"></tbody>
+        </table>
+    </div>
+
+    <div class="dashboard-actions">
+        <a href="Dashboard.html">Dashboard</a>
+        <a href="index.html">Home</a>
+    </div>
+
+    <script>
+        var passwordInput = document.getElementById("adminPassword");
+        var messageBox = document.getElementById("adminMessage");
+        var table = document.getElementById("adminTable");
+        var body = document.getElementById("adminBody");
+
+        function showMessage(text, isError) {
+            messageBox.textContent = text;
+            messageBox.style.color = isError ? "#c0392b" : "#2e7d32";
+        }
+
+        function authHeaders() {
+            return {
+                "Content-Type": "application/json",
+                "x-admin-password": passwordInput.value
+            };
+        }
+
+        async function loadApplications() {
+            showMessage("Loading...", false);
+
+            try {
+                var response = await fetch("/api/admin/applications", {
+                    headers: authHeaders()
+                });
+                var data = await response.json();
+
+                if (!response.ok) {
+                    table.style.display = "none";
+                    showMessage(data.error || "Could not load applications.", true);
+                    return;
+                }
+
+                renderRows(data);
+                showMessage(data.length + " application(s) loaded.", false);
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Could not connect to the server.", true);
+            }
+        }
+
+        function makeButton(label, className, id, status) {
+            var button = document.createElement("button");
+            button.type = "button";
+            button.textContent = label;
+            if (className) {
+                button.className = className;
+            }
+            button.addEventListener("click", function () {
+                setStatus(id, status);
+            });
+            return button;
+        }
+
+        function renderRows(rows) {
+            body.innerHTML = "";
+
+            rows.forEach(function (row) {
+                var tr = document.createElement("tr");
+
+                [row.id, row.adopter_name, row.email, row.pet_name].forEach(function (value) {
+                    var td = document.createElement("td");
+                    td.textContent = value;
+                    tr.appendChild(td);
+                });
+
+                var statusCell = document.createElement("td");
+                var status = String(row.status || "pending").toLowerCase();
+                statusCell.textContent = status;
+                statusCell.className = "status-" + status;
+                tr.appendChild(statusCell);
+
+                var actionCell = document.createElement("td");
+                actionCell.className = "row-buttons";
+                actionCell.appendChild(makeButton("Approve", "", row.id, "approved"));
+                actionCell.appendChild(makeButton("Reject", "btn-reject", row.id, "rejected"));
+                actionCell.appendChild(makeButton("Pending", "btn-pending", row.id, "pending"));
+                tr.appendChild(actionCell);
+
+                body.appendChild(tr);
+            });
+
+            table.style.display = "table";
+        }
+
+        async function setStatus(id, status) {
+            try {
+                var response = await fetch("/api/admin/applications/" + id + "/status", {
+                    method: "POST",
+                    headers: authHeaders(),
+                    body: JSON.stringify({ status: status })
+                });
+                var data = await response.json();
+
+                if (!response.ok) {
+                    showMessage(data.error || "Could not update.", true);
+                    return;
+                }
+
+                await loadApplications();
+                showMessage("Application " + id + " is now " + status + ".", false);
+
+            } catch (error) {
+                console.error(error);
+                showMessage("Could not connect to the server.", true);
+            }
+        }
+
+        document.getElementById("loadButton").addEventListener("click", loadApplications);
+
+        passwordInput.addEventListener("keydown", function (event) {
+            if (event.key === "Enter") {
+                loadApplications();
+            }
+        });
+    </script>
+
+</body>
+</html>
